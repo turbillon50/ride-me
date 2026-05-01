@@ -1,11 +1,20 @@
 // RideMe — Auth screens (Splash, Welcome, Login, Signup, Role)
 
-// Fotos hero (Unsplash, libres de uso). Carrusel con crossfade tipo Apple TV.
+// ─── ASSETS A REEMPLAZAR ─────────────────────────────────────────────────
+// Fotos del carrusel del Welcome.
+// Reemplaza con tus fotos finales (sube a /RIDE-ME/uploads/ o usa URLs).
+// Tema buscado: traslado profesional — coche abriendo puerta a pasajero,
+// interior cómodo, sedán esperando, conductor uniformado, no autos de lujo
+// extremos ni cámaras / paisajes.
 const RM_HERO_PHOTOS = [
-  'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=1200&q=80&auto=format&fit=crop',  // road sunset
-  'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1200&q=80&auto=format&fit=crop',  // city night
-  'https://images.unsplash.com/photo-1542359649-31e03cd4d909?w=1200&q=80&auto=format&fit=crop',    // driver perspective
-  'https://images.unsplash.com/photo-1493238792000-8113da705763?w=1200&q=80&auto=format&fit=crop', // mexico city
+  // sedán negro abriendo puerta al pasajero (escena de traslado)
+  'https://images.unsplash.com/photo-1559416523-140ddc3d238c?w=1200&q=80&auto=format&fit=crop',
+  // interior de sedán con asientos cómodos, vista del pasajero
+  'https://images.unsplash.com/photo-1518306727298-4c17e1bf6947?w=1200&q=80&auto=format&fit=crop',
+  // coche profesional esperando en la noche con luces de ciudad
+  'https://images.unsplash.com/photo-1572611936854-15826181d4d4?w=1200&q=80&auto=format&fit=crop',
+  // mano abriendo puerta de coche / momento de subida al traslado
+  'https://images.unsplash.com/photo-1554744512-d6c603f27c54?w=1200&q=80&auto=format&fit=crop',
 ];
 
 function RMSplash() {
@@ -251,27 +260,32 @@ function RMRoleSelect() {
     else if (r === 'driver') goto('driverDashboard');
     else goto('adminDashboard');
   };
+  // ─── ICONOS DE ROLES — REEMPLAZAR ─────────────────────────────────────
+  // Cuando me pases tus PNG/SVG de roles, sustituye los `icon` de abajo por
+  // <img src="/RIDE-ME/uploads/tu-icono.png" style={{ width: 36, height: 36 }}/>
+  // o un componente SVG inline con tu diseño.
   const Card = ({ id, title, sub, color, icon }) => (
     <button onClick={() => pick(id)} style={{
       width: '100%', textAlign: 'left', padding: 18, borderRadius: 'var(--rm-r-lg)',
-      background: '#fff', border: '1.5px solid var(--rm-border)',
+      background: 'var(--rm-surface)', border: '1.5px solid var(--rm-border)',
       display: 'flex', alignItems: 'center', gap: 14, boxShadow: 'var(--rm-shadow-sm)',
     }}>
       <div style={{ width: 56, height: 56, borderRadius: 'var(--rm-r-md)', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
         {icon}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>{title}</div>
+        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--rm-text)' }}>{title}</div>
         <div style={{ fontSize: 13, color: 'var(--rm-text-2)' }}>{sub}</div>
       </div>
       <RMIcon.arrowR style={{ color: 'var(--rm-text-3)' }}/>
     </button>
   );
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-bg)' }}>
+    <div className="rm-page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-bg)' }}>
       <RMTopBar onBack={() => goto('welcome')} title={t.chooseRole} right={<RMLocaleToggle/>}/>
       <div style={{ padding: '12px 20px', color: 'var(--rm-text-2)', fontSize: 13 }}>{t.chooseRoleSub}</div>
       <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Reemplazar `icon` con tu PNG/SVG cuando me pases la iconografía */}
         <Card id="passenger" title={t.rolePassenger} sub="Pide un viaje y elige el mejor precio" color="var(--rm-blue)" icon={<RMIcon.user/>}/>
         <Card id="driver" title={t.roleDriver} sub="Recibe solicitudes y envía ofertas" color="var(--rm-navy)" icon={<RMIcon.car/>}/>
         <Card id="admin" title={t.roleAdmin} sub="Gestiona la plataforma" color="var(--rm-cyan)" icon={<RMIcon.cog/>}/>

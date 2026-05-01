@@ -52,6 +52,61 @@ function RMInput({ label, icon, value, onChange, placeholder, type='text', hint,
   );
 }
 
+function RMTextarea({ label, value, onChange, placeholder, rows=3, error, hint }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {label && <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--rm-text-2)' }}>{label}</label>}
+      <textarea value={value || ''} onChange={(e) => onChange?.(e.target.value)} placeholder={placeholder} rows={rows}
+        style={{
+          padding: 12, borderRadius: 'var(--rm-r-md)', resize: 'none', fontSize: 14, fontFamily: 'inherit',
+          border: `1.5px solid ${error ? 'var(--rm-red)' : 'var(--rm-border)'}`, outline: 'none',
+        }}/>
+      {(hint || error) && <div style={{ fontSize: 12, color: error ? 'var(--rm-red)' : 'var(--rm-text-3)' }}>{error || hint}</div>}
+    </div>
+  );
+}
+
+function RMSelect({ label, value, onChange, options, hint, error }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {label && <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--rm-text-2)' }}>{label}</label>}
+      <select value={value} onChange={(e) => onChange?.(e.target.value)}
+        style={{
+          height: 50, padding: '0 14px', fontSize: 15, color: 'var(--rm-text)',
+          border: `1.5px solid ${error ? 'var(--rm-red)' : 'var(--rm-border)'}`,
+          borderRadius: 'var(--rm-r-md)', background: '#fff', appearance: 'none',
+          backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22><path d=%22M6 9l6 6 6-6%22 stroke=%22%238693AB%22 stroke-width=%222%22/></svg>")',
+          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center',
+        }}>
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      {(hint || error) && <div style={{ fontSize: 12, color: error ? 'var(--rm-red)' : 'var(--rm-text-3)' }}>{error || hint}</div>}
+    </div>
+  );
+}
+
+function RMSwitch({ checked, onChange, label, sub }) {
+  return (
+    <button onClick={() => onChange?.(!checked)} style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0',
+      borderBottom: '1px solid var(--rm-border)', textAlign: 'left',
+    }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{label}</div>
+        {sub && <div style={{ fontSize: 12, color: 'var(--rm-text-3)', marginTop: 2 }}>{sub}</div>}
+      </div>
+      <span style={{
+        width: 44, height: 26, borderRadius: 13, padding: 3,
+        background: checked ? 'var(--rm-blue)' : 'var(--rm-border-strong)',
+        display: 'flex', alignItems: 'center', justifyContent: checked ? 'flex-end' : 'flex-start',
+        transition: 'background 0.2s, justify-content 0.2s',
+      }}>
+        <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: 'var(--rm-shadow-xs)' }}/>
+      </span>
+    </button>
+  );
+}
+
 function RMCard({ children, padding=16, style={} }) {
   return <div style={{ background: '#fff', borderRadius: 'var(--rm-r-lg)', padding, boxShadow: 'var(--rm-shadow-sm)', ...style }}>{children}</div>;
 }
@@ -182,7 +237,85 @@ function RMRouteRow({ from, to }) {
   );
 }
 
+// ─── Modal / Bottom sheet / Confirm ──────────────────────────────────────
+function RMModal({ open, onClose, title, children, footer, maxWidth=420 }) {
+  if (!open) return null;
+  return (
+    <div onClick={onClose} style={{
+      position: 'absolute', inset: 0, zIndex: 60, background: 'rgba(13,27,61,0.45)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: '#fff', borderRadius: '20px 20px 0 0',
+        padding: '14px 18px 18px', width: '100%', maxWidth,
+        maxHeight: '85%', overflow: 'auto',
+        animation: 'rm-slide-up 0.22s ease both',
+        boxShadow: '0 -8px 30px rgba(13,27,61,0.18)',
+      }} className="rm-scroll">
+        <div style={{ width: 40, height: 4, background: 'var(--rm-border-strong)', borderRadius: 2, margin: '0 auto 12px' }}/>
+        {title && <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 10 }}>{title}</div>}
+        {children}
+        {footer && <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function RMConfirm({ open, onClose, onConfirm, title, message, confirmLabel, cancelLabel, danger }) {
+  return (
+    <RMModal open={open} onClose={onClose} title={title}
+      footer={<>
+        <RMButton variant={danger ? 'danger' : 'primary'} full onClick={() => { onConfirm?.(); onClose?.(); }}>{confirmLabel || 'Confirmar'}</RMButton>
+        <RMButton variant="secondary" full onClick={onClose}>{cancelLabel || 'Cancelar'}</RMButton>
+      </>}>
+      {message && <div style={{ color: 'var(--rm-text-2)', fontSize: 14, lineHeight: 1.5 }}>{message}</div>}
+    </RMModal>
+  );
+}
+
+function RMToast({ open, kind='info', children, onClose }) {
+  React.useEffect(() => {
+    if (!open) return;
+    const id = setTimeout(() => onClose?.(), 2400);
+    return () => clearTimeout(id);
+  }, [open]);
+  if (!open) return null;
+  const colors = {
+    info:    { bg: 'var(--rm-navy)', col: '#fff' },
+    success: { bg: 'var(--rm-green)', col: '#fff' },
+    error:   { bg: 'var(--rm-red)', col: '#fff' },
+  }[kind];
+  return (
+    <div style={{
+      position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 80,
+      background: colors.bg, color: colors.col, padding: '10px 16px',
+      borderRadius: 'var(--rm-r-full)', boxShadow: 'var(--rm-shadow-md)',
+      fontSize: 13, fontWeight: 600, animation: 'rm-fade-in 0.2s ease both',
+      maxWidth: '90%', textAlign: 'center',
+    }}>{children}</div>
+  );
+}
+
+function RMListRow({ icon, label, right, onClick, danger, sub }) {
+  return (
+    <button onClick={onClick} style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+      background: '#fff', borderBottom: '1px solid var(--rm-border)', textAlign: 'left',
+      color: danger ? 'var(--rm-red)' : 'var(--rm-text)',
+    }}>
+      <span style={{ width: 36, height: 36, borderRadius: 10, background: danger ? 'var(--rm-red-bg)' : 'var(--rm-bg)', color: danger ? 'var(--rm-red)' : 'var(--rm-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>
+      <span style={{ flex: 1 }}>
+        <span style={{ display: 'block', fontWeight: 600, fontSize: 15 }}>{label}</span>
+        {sub && <span style={{ display: 'block', fontSize: 12, color: 'var(--rm-text-3)', marginTop: 2 }}>{sub}</span>}
+      </span>
+      {right || <RMIcon.arrowR style={{ color: 'var(--rm-text-3)' }}/>}
+    </button>
+  );
+}
+
 Object.assign(window, {
-  RMButton, RMInput, RMCard, RMBadge, RMAvatar,
+  RMButton, RMInput, RMTextarea, RMSelect, RMSwitch,
+  RMCard, RMBadge, RMAvatar,
   RMTopBar, RMTabBar, RMEmpty, RMLocaleToggle, RMRouteRow,
+  RMModal, RMConfirm, RMToast, RMListRow,
 });

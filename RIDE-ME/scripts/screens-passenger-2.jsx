@@ -1,17 +1,66 @@
 // RideMe — Passenger flow part 2: searching, offers, confirmed, in-progress, rating
+// Genera ofertas escalonadas en vivo (varios conductores responden al precio del pasajero).
+
+function rmGenerateOffers(trip) {
+  // Crea 2-4 ofertas variadas alrededor del precio sugerido del pasajero.
+  const base = trip?.price || trip?.suggested || 110;
+  const seed = (trip?.from || '') + (trip?.to || '') + base;
+  let h = 0; for (let i = 0; i < seed.length; i++) h = (h << 5) - h + seed.charCodeAt(i) | 0;
+  const r = (n) => { h = (h * 9301 + 49297) % 233280; return Math.abs(h % n); };
+  const candidates = RM_MOCK.drivers.slice();
+  // shuffle determinista
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = r(i + 1); const tmp = candidates[i]; candidates[i] = candidates[j]; candidates[j] = tmp;
+  }
+  const count = 2 + r(3); // 2..4
+  return candidates.slice(0, count).map((d, i) => {
+    // El conductor pide entre el precio del rider y +20%
+    const delta = r(21); // 0..20%
+    const price = Math.round((base * (1 + delta / 100)) / 5) * 5;
+    return {
+      ...d,
+      price,
+      eta: 1 + r(11),         // 1..11 min
+      distance: +(0.4 + r(40) / 10).toFixed(1), // 0.4..4.4 km
+      arriveDelayMs: 800 + i * (900 + r(900)),  // ofertas llegan escalonadas
+    };
+  });
+}
+
 function RMPassengerSearching() {
-  const t = useT(); const { goto, trip } = useStore();
-  const [secs, setSecs] = React.useState(28);
+  const t = useT();
+  const { goto, trip, cancelTrip, setOffers, offers } = useStore();
+  const [secs, setSecs] = React.useState(45);
+  const [confirmCancel, setConfirmCancel] = React.useState(false);
+
+  // Genera ofertas y las publica escalonadamente
   React.useEffect(() => {
-    const timer = setInterval(() => setSecs(s => Math.max(0, s - 1)), 1000);
-    const advance = setTimeout(() => goto('passengerOffers'), 3500);
-    return () => { clearInterval(timer); clearTimeout(advance); };
+    setOffers([]);
+    if (!trip) return;
+    const planned = rmGenerateOffers(trip);
+    const timers = [];
+    planned.forEach(p => {
+      const id = setTimeout(() => {
+        setOffers(arr => [...arr, p]);
+      }, p.arriveDelayMs);
+      timers.push(id);
+    });
+    // navega a ofertas cuando llega la primera
+    const goId = setTimeout(() => goto('passengerOffers'), planned[0]?.arriveDelayMs + 200);
+    timers.push(goId);
+    return () => timers.forEach(clearTimeout);
+  }, [trip?.from, trip?.to, trip?.price]);
+
+  React.useEffect(() => {
+    const tick = setInterval(() => setSecs(s => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(tick);
   }, []);
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0 }}><RMMap showRoute showDriverDots={5}/></div>
       <div style={{ position: 'relative', padding: 12 }}>
-        <button onClick={() => goto('passengerHome')} style={{
+        <button onClick={() => setConfirmCancel(true)} style={{
           width: 40, height: 40, borderRadius: '50%', background: '#fff', boxShadow: 'var(--rm-shadow-md)',
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}><RMIcon.arrowL/></button>
@@ -37,16 +86,28 @@ function RMPassengerSearching() {
         </div>
         <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
           <span style={{ color: 'var(--rm-text-3)' }}>{t.proposedFare}</span>
-          <span style={{ fontWeight: 700 }}>${trip?.price || 110} MXN · {trip?.pay === 'cash' ? t.cash : t.card}</span>
+          <span style={{ fontWeight: 700 }}>${trip?.price || 110} MXN · {trip?.pay === 'pm-cash' || trip?.pay === 'cash' ? t.cash : t.card}</span>
         </div>
-        <RMButton variant="danger" full onClick={() => goto('passengerHome')}>{t.cancelRequest}</RMButton>
+        <div style={{ width: '100%', fontSize: 12, color: 'var(--rm-text-3)', textAlign: 'center' }}>
+          {offers.length} {offers.length === 1 ? 'oferta' : 'ofertas'} recibidas
+        </div>
+        <RMButton variant="danger" full onClick={() => setConfirmCancel(true)}>{t.cancelRequest}</RMButton>
       </div>
+
+      <RMConfirm open={confirmCancel} onClose={() => setConfirmCancel(false)}
+        title={t.cancelTripConfirm} message={t.cancelTripSub}
+        confirmLabel={t.confirm} cancelLabel={t.back} danger
+        onConfirm={() => { cancelTrip('user-cancelled-search'); goto('passengerHome'); }}/>
     </div>
   );
 }
 
 function RMPassengerOffers() {
-  const t = useT(); const { goto, trip, setTrip } = useStore();
+  const t = useT();
+  const { goto, trip, setTrip, offers, setOffers, cancelTrip } = useStore();
+  const [confirmCancel, setConfirmCancel] = React.useState(false);
+  const list = offers.length ? offers : []; // sin fallback estático: si no hay ofertas, empty state
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-bg)' }}>
       <div style={{ height: 180, position: 'relative' }}>
@@ -58,7 +119,7 @@ function RMPassengerOffers() {
         <div style={{ position: 'absolute', top: 12, right: 12, padding: '8px 12px', background: '#fff',
           borderRadius: 'var(--rm-r-full)', boxShadow: 'var(--rm-shadow-md)', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--rm-green)', animation: 'rm-pulse 1.6s infinite' }}/>
-          {RM_MOCK.drivers.length} {t.driverOffers.toLowerCase()}
+          {list.length} {t.driverOffers.toLowerCase()}
         </div>
       </div>
       <div style={{ flex: 1, padding: '14px 16px 16px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }} className="rm-scroll">
@@ -66,7 +127,11 @@ function RMPassengerOffers() {
           <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.01em' }}>{t.driverOffers}</div>
           <div style={{ fontSize: 12, color: 'var(--rm-text-3)' }}>{t.proposedFare}: ${trip?.price || 110}</div>
         </div>
-        {RM_MOCK.drivers.map(d => (
+        {list.length === 0 && (
+          <RMEmpty icon={<RMIcon.car/>} title={t.noOffers} sub={t.noOffersSub}
+            action={<RMButton variant="secondary" size="sm" onClick={() => goto('passengerSearching')}>{t.retry}</RMButton>}/>
+        )}
+        {list.map(d => (
           <RMCard key={d.id} padding={14}>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
               <RMAvatar name={d.name} color={d.photo} size={48}/>
@@ -87,21 +152,39 @@ function RMPassengerOffers() {
                 <div style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: 22, letterSpacing: '-0.03em', color: 'var(--rm-navy)' }}>${d.price}</div>
                 <RMButton variant="primary" size="sm" onClick={() => {
                   setTrip({ ...trip, driver: d, fare: d.price, status: 'confirmed' });
+                  setOffers([]); // limpia las ofertas restantes
                   goto('passengerConfirmed');
                 }}>{t.accept}</RMButton>
               </div>
             </div>
           </RMCard>
         ))}
+        <RMButton variant="ghost" full onClick={() => setConfirmCancel(true)}>{t.cancelRequest}</RMButton>
       </div>
+
+      <RMConfirm open={confirmCancel} onClose={() => setConfirmCancel(false)}
+        title={t.cancelTripConfirm} message={t.cancelTripSub}
+        confirmLabel={t.confirm} cancelLabel={t.back} danger
+        onConfirm={() => { cancelTrip('user-cancelled-offers'); goto('passengerHome'); }}/>
     </div>
   );
 }
 
 function RMPassengerConfirmed() {
-  const t = useT(); const { goto, trip } = useStore();
+  const t = useT();
+  const { goto, trip, setTripStatus } = useStore();
   const d = trip?.driver || RM_MOCK.drivers[0];
-  React.useEffect(() => { const x = setTimeout(() => goto('passengerInProgress'), 2200); return () => clearTimeout(x); }, []);
+  React.useEffect(() => {
+    const x = setTimeout(() => {
+      setTripStatus('arrived');
+      const y = setTimeout(() => {
+        setTripStatus('in_progress');
+        goto('passengerInProgress');
+      }, 1600);
+      return () => clearTimeout(y);
+    }, 1800);
+    return () => clearTimeout(x);
+  }, []);
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-bg)' }}>
       <div style={{ flex: 1, position: 'relative' }}><RMMap showRoute showDriverDots={1}/></div>
@@ -130,8 +213,13 @@ function RMPassengerConfirmed() {
 }
 
 function RMPassengerInProgress() {
-  const t = useT(); const { goto, trip } = useStore();
+  const t = useT();
+  const { goto, trip, completeTrip } = useStore();
   const d = trip?.driver || RM_MOCK.drivers[0];
+  const [confirmCall, setConfirmCall] = React.useState(false);
+  const [confirmFinish, setConfirmFinish] = React.useState(false);
+  const fare = trip?.fare || d.price;
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-bg)' }}>
       <div style={{ flex: 1, position: 'relative' }}>
@@ -155,7 +243,7 @@ function RMPassengerInProgress() {
             <div style={{ fontWeight: 700, fontSize: 15 }}>{d.name}</div>
             <div style={{ fontSize: 12, color: 'var(--rm-text-2)' }}>{d.car} · {d.color} · {d.plate}</div>
           </div>
-          <button style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--rm-green)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><RMIcon.phone/></button>
+          <button onClick={() => setConfirmCall(true)} style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--rm-green)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><RMIcon.phone/></button>
           <button onClick={() => goto('passengerChat')} style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--rm-blue)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><RMIcon.chat/></button>
         </div>
         <div style={{ marginTop: 14, padding: 12, background: 'var(--rm-surface-alt)', borderRadius: 'var(--rm-r-md)' }}>
@@ -164,28 +252,53 @@ function RMPassengerInProgress() {
         <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 4px' }}>
           <div>
             <div style={{ fontSize: 12, color: 'var(--rm-text-3)' }}>{t.agreedFare}</div>
-            <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>${d.price} MXN</div>
+            <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>${fare} MXN</div>
           </div>
-          <RMBadge tone="blue">{trip?.pay === 'cash' ? t.cash : t.card}</RMBadge>
+          <RMBadge tone="blue">{trip?.pay === 'pm-cash' || trip?.pay === 'cash' ? t.cash : t.card}</RMBadge>
         </div>
-        <RMButton variant="primary" full onClick={() => goto('passengerRating')}>{t.finishTrip}</RMButton>
+        <RMButton variant="primary" full onClick={() => setConfirmFinish(true)}>{t.finishTrip}</RMButton>
       </div>
+
+      <RMConfirm open={confirmCall} onClose={() => setConfirmCall(false)}
+        title={t.callConfirm} message={t.callConfirmSub}
+        confirmLabel={t.callDriver} cancelLabel={t.cancel}
+        onConfirm={() => { try { window.location.href = 'tel:+525500000000'; } catch {} }}/>
+      <RMConfirm open={confirmFinish} onClose={() => setConfirmFinish(false)}
+        title={t.finishConfirm} message={t.finishConfirmSub}
+        confirmLabel={t.finishTrip} cancelLabel={t.cancel}
+        onConfirm={() => { completeTrip(fare); goto('passengerRating'); }}/>
     </div>
   );
 }
 
 function RMPassengerRating() {
-  const t = useT(); const { goto, trip } = useStore();
-  const d = trip?.driver || RM_MOCK.drivers[0];
+  const t = useT();
+  const { goto, trip, history, submitRating, submitReport } = useStore();
+  const d = trip?.driver || (history[0] && { name: history[0].driver, photo: '#5BD0FF' }) || RM_MOCK.drivers[0];
+  const recordedFare = history[0]?.fare ?? trip?.fare ?? d.price ?? 0;
   const [stars, setStars] = React.useState(5);
   const [comment, setComment] = React.useState('');
+  const [reportOpen, setReportOpen] = React.useState(false);
+  const [reportReason, setReportReason] = React.useState(RM_MOCK.reportReasons[0].id);
+  const [reportDetail, setReportDetail] = React.useState('');
+  const [toast, setToast] = React.useState(null);
+  const [submitting, setSubmitting] = React.useState(false);
+
+  const onSubmit = () => {
+    if (submitting) return;
+    setSubmitting(true);
+    submitRating(stars, comment);
+    setToast(t.thanksRating);
+    setTimeout(() => goto('passengerHome'), 800);
+  };
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', position: 'relative' }}>
       <RMTopBar title={t.rateDriver} onBack={() => goto('passengerHome')}/>
       <div style={{ flex: 1, padding: 24, display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center' }}>
         <RMAvatar name={d.name} color={d.photo} size={88}/>
         <div style={{ fontWeight: 800, fontSize: 22 }}>{d.name}</div>
-        <div style={{ fontSize: 13, color: 'var(--rm-text-2)' }}>{d.car} · ${d.price} MXN</div>
+        <div style={{ fontSize: 13, color: 'var(--rm-text-2)' }}>{d.car || ''} {d.car ? '·' : ''} ${recordedFare} MXN</div>
         <div style={{ display: 'flex', gap: 8 }}>
           {[1,2,3,4,5].map(n => (
             <button key={n} onClick={() => setStars(n)} style={{ width: 44, height: 44, color: n <= stars ? '#F59E0B' : '#D6E0EE' }}>
@@ -194,15 +307,32 @@ function RMPassengerRating() {
           ))}
         </div>
         <div style={{ width: '100%' }}>
-          <textarea value={comment} onChange={(e) => setComment(e.target.value)}
-            placeholder={t.leaveComment} rows={3}
-            style={{ width: '100%', padding: 14, borderRadius: 'var(--rm-r-md)', border: '1.5px solid var(--rm-border)', resize: 'none', fontSize: 14, fontFamily: 'inherit' }}/>
+          <RMTextarea value={comment} onChange={setComment} placeholder={t.leaveComment} rows={3}/>
         </div>
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <RMButton variant="primary" full onClick={() => goto('passengerHome')}>{t.submitRating}</RMButton>
-          <button style={{ fontSize: 13, color: 'var(--rm-red)', fontWeight: 600, padding: 8 }}>{t.report}</button>
+          <RMButton variant="primary" full onClick={onSubmit} disabled={submitting}>{t.submitRating}</RMButton>
+          <button onClick={() => setReportOpen(true)} style={{ fontSize: 13, color: 'var(--rm-red)', fontWeight: 600, padding: 8 }}>{t.report}</button>
         </div>
       </div>
+
+      <RMModal open={reportOpen} onClose={() => setReportOpen(false)} title={t.reportTitle}
+        footer={<>
+          <RMButton variant="primary" full onClick={() => {
+            submitReport({ reason: RM_MOCK.reportReasons.find(r => r.id === reportReason)?.es || reportReason,
+              detail: reportDetail, driver: d.name, tripId: history[0]?.id });
+            setReportOpen(false);
+            setToast(t.reportSubmitted);
+          }}>{t.send}</RMButton>
+          <RMButton variant="secondary" full onClick={() => setReportOpen(false)}>{t.cancel}</RMButton>
+        </>}>
+        <RMSelect label={t.reportReason} value={reportReason} onChange={setReportReason}
+          options={RM_MOCK.reportReasons.map(r => ({ value: r.id, label: r.es }))}/>
+        <div style={{ height: 10 }}/>
+        <RMTextarea label={t.reportDescription} value={reportDetail} onChange={setReportDetail}
+          placeholder="Cuéntanos qué pasó…" rows={4}/>
+      </RMModal>
+
+      <RMToast open={!!toast} onClose={() => setToast(null)} kind="success">{toast}</RMToast>
     </div>
   );
 }

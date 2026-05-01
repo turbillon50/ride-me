@@ -50,6 +50,11 @@ function RMAppRouter() {
       passengerMessages: <RMPassengerMessages/>,
       passengerChat: <RMPassengerChat/>,
       passengerProfile: <RMPassengerProfile/>,
+      passengerEditProfile: <RMPassengerEditProfile/>,
+      passengerPaymentMethods: <RMPassengerPaymentMethods/>,
+      passengerSecurity: <RMPassengerSecurity/>,
+      passengerNotifications: <RMPassengerNotifications/>,
+      passengerHelp: <RMPassengerHelp/>,
     };
     screen = map[r] || <RMPassengerHome/>;
   }

@@ -35,7 +35,6 @@ function RMWelcome() {
         background: 'linear-gradient(180deg, #2563EB 0%, #1A45BF 100%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}>
-        {/* radar pulse */}
         {[0,1,2].map(i => (
           <div key={i} style={{
             position: 'absolute', width: 80, height: 80, borderRadius: '50%',
@@ -66,29 +65,47 @@ function RMWelcome() {
 }
 
 function RMLogin() {
-  const t = useT(); const { goto, setAuthed } = useStore();
+  const t = useT();
+  const { goto, setAuthed } = useStore();
   const [email, setEmail] = React.useState('lucia@example.com');
-  const [pw, setPw] = React.useState('••••••••');
+  const [pw, setPw] = React.useState('lucia1234');
+  const [errors, setErrors] = React.useState({});
   const [loading, setLoading] = React.useState(false);
+  const [oauth, setOauth] = React.useState(null);
 
   const submit = () => {
+    const e = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t.errEmail;
+    if ((pw || '').length < 8) e.pw = t.errPwShort;
+    setErrors(e);
+    if (Object.keys(e).length) return;
     setLoading(true);
-    setTimeout(() => { setLoading(false); setAuthed(true); goto('roleSelect'); }, 800);
+    setTimeout(() => { setLoading(false); setAuthed(true); goto('roleSelect'); }, 700);
+  };
+
+  const oauthGo = (provider) => {
+    setOauth(provider);
+    setTimeout(() => {
+      setOauth(null);
+      setAuthed(true);
+      goto('roleSelect');
+    }, 1200);
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', position: 'relative' }}>
       <RMTopBar onBack={() => goto('welcome')} title={t.signIn} right={<RMLocaleToggle/>}/>
       <div style={{ flex: 1, padding: '8px 24px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <RMLogoMark size={56}/>
           <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>{t.signIn}</div>
         </div>
-        <RMInput label={t.email} value={email} onChange={setEmail} placeholder="tucorreo@…"/>
-        <RMInput label={t.password} type="password" value={pw} onChange={setPw}/>
-        <div style={{ alignSelf: 'flex-end', fontSize: 13, color: 'var(--rm-blue)', fontWeight: 600 }}>{t.forgot}</div>
+        <RMInput label={t.email} value={email} onChange={setEmail} placeholder="tucorreo@…" error={errors.email}/>
+        <RMInput label={t.password} type="password" value={pw} onChange={setPw} error={errors.pw}/>
+        <div style={{ alignSelf: 'flex-end', fontSize: 13, color: 'var(--rm-blue)', fontWeight: 600, cursor: 'pointer' }}
+          onClick={() => alert('Próximamente: recuperación de contraseña por correo.')}>{t.forgot}</div>
         <RMButton variant="primary" full onClick={submit} disabled={loading}>
-          {loading ? <span className="rm-spinner" style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'rm-spin 0.8s linear infinite' }}/> : t.signIn}
+          {loading ? <span style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'rm-spin 0.8s linear infinite' }}/> : t.signIn}
         </RMButton>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0' }}>
           <div style={{ flex: 1, height: 1, background: 'var(--rm-border)' }}/>
@@ -96,35 +113,57 @@ function RMLogin() {
           <div style={{ flex: 1, height: 1, background: 'var(--rm-border)' }}/>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <RMButton variant="secondary" full>Google</RMButton>
-          <RMButton variant="secondary" full>Apple</RMButton>
+          <RMButton variant="secondary" full onClick={() => oauthGo('Google')}>Google</RMButton>
+          <RMButton variant="secondary" full onClick={() => oauthGo('Apple')}>Apple</RMButton>
         </div>
         <div style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: 'var(--rm-text-2)' }}>
-          {t.noAccount} <span style={{ color: 'var(--rm-blue)', fontWeight: 700 }} onClick={() => goto('signup')}>{t.signUp}</span>
+          {t.noAccount} <span style={{ color: 'var(--rm-blue)', fontWeight: 700, cursor: 'pointer' }} onClick={() => goto('signup')}>{t.signUp}</span>
         </div>
       </div>
+      <RMModal open={!!oauth} onClose={() => setOauth(null)} title={t.oauthMockTitle}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 12 }}>
+          <span style={{ width: 36, height: 36, border: '3px solid var(--rm-blue)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'rm-spin 0.8s linear infinite' }}/>
+          <div style={{ textAlign: 'center', color: 'var(--rm-text-2)' }}>{t.oauthMockBody} ({oauth})</div>
+        </div>
+      </RMModal>
     </div>
   );
 }
 
 function RMSignup() {
-  const t = useT(); const { goto, setAuthed } = useStore();
+  const t = useT();
+  const { goto, setAuthed, setProfile } = useStore();
   const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
-  const [phone, setPhone] = React.useState('');
+  const [phone, setPhone] = React.useState('+52 ');
   const [pw, setPw] = React.useState('');
+  const [errors, setErrors] = React.useState({});
+
+  const submit = () => {
+    const e = {};
+    if (!name.trim())     e.name = t.errRequired;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = t.errEmail;
+    if (!/^\+52\s?\d{2}\s?\d{4}\s?\d{4}$/.test(phone)) e.phone = t.errPhone;
+    if ((pw || '').length < 8) e.pw = t.errPwShort;
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    setProfile({ name: name.trim(), email: email.trim(), phone: phone.trim(), trips: 0, rating: 0 });
+    setAuthed(true);
+    goto('roleSelect');
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
       <RMTopBar onBack={() => goto('welcome')} title={t.signUp} right={<RMLocaleToggle/>}/>
-      <div style={{ flex: 1, padding: '8px 24px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <RMInput label={t.fullName} value={name} onChange={setName} placeholder="Lucía Fernández"/>
-        <RMInput label={t.email} value={email} onChange={setEmail} placeholder="lucia@example.com"/>
-        <RMInput label={t.phone} value={phone} onChange={setPhone} placeholder="+52 55 …"/>
-        <RMInput label={t.password} type="password" value={pw} onChange={setPw} placeholder="Mínimo 8 caracteres"/>
+      <div style={{ flex: 1, padding: '8px 24px 24px', display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }} className="rm-scroll">
+        <RMInput label={t.fullName} value={name} onChange={setName} placeholder="Lucía Fernández" error={errors.name}/>
+        <RMInput label={t.email} value={email} onChange={setEmail} placeholder="lucia@example.com" error={errors.email}/>
+        <RMInput label={t.phone} value={phone} onChange={setPhone} placeholder="+52 55 0000 0000" error={errors.phone}/>
+        <RMInput label={t.password} type="password" value={pw} onChange={setPw} placeholder="Mínimo 8 caracteres" error={errors.pw}/>
         <div style={{ fontSize: 11, color: 'var(--rm-text-3)', lineHeight: 1.5 }}>{t.terms}</div>
-        <RMButton variant="primary" full onClick={() => { setAuthed(true); goto('roleSelect'); }}>{t.continue}</RMButton>
+        <RMButton variant="primary" full onClick={submit}>{t.continue}</RMButton>
         <div style={{ textAlign: 'center', marginTop: 8, fontSize: 13, color: 'var(--rm-text-2)' }}>
-          {t.haveAccount} <span style={{ color: 'var(--rm-blue)', fontWeight: 700 }} onClick={() => goto('login')}>{t.signIn}</span>
+          {t.haveAccount} <span style={{ color: 'var(--rm-blue)', fontWeight: 700, cursor: 'pointer' }} onClick={() => goto('login')}>{t.signIn}</span>
         </div>
       </div>
     </div>
@@ -132,7 +171,8 @@ function RMSignup() {
 }
 
 function RMRoleSelect() {
-  const t = useT(); const { goto, setRole } = useStore();
+  const t = useT();
+  const { goto, setRole } = useStore();
   const pick = (r) => {
     setRole(r);
     if (r === 'passenger') goto('passengerHome');

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<title>RideMe — Tu ride, tu destino</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<meta name="theme-color" content="#2563EB"/>
+<meta name="description" content="App de movilidad con precios negociables."/>
+
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png"/>
+
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="RideMe"/>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<meta name="application-name" content="RideMe"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="styles/tokens.css"/>
+
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: #fff; overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+    touch-action: manipulation;
+  }
+  body { font-family: 'Inter', -apple-system, system-ui, sans-serif; overflow: hidden; }
+  #root { width: 100%; height: 100dvh; }
+  input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+  @supports (padding: env(safe-area-inset-top)) {
+    body::before {
+      content: ''; position: fixed; top: 0; left: 0; right: 0;
+      height: env(safe-area-inset-top); background: #2563EB;
+      z-index: 9999; pointer-events: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="scripts/i18n-es.js"></script>
+<script src="scripts/i18n-en.js"></script>
+<script>
+  window.RM_I18N_ES = RM_I18N_ES;
+  window.RM_I18N_EN = RM_I18N_EN;
+</script>
+
+<script type="text/babel" src="scripts/icons.jsx"></script>
+<script type="text/babel" src="scripts/map.jsx"></script>
+<script type="text/babel" src="scripts/store.jsx"></script>
+<script type="text/babel" src="scripts/ui.jsx"></script>
+<script type="text/babel" src="scripts/screens-auth.jsx"></script>
+<script type="text/babel" src="scripts/screens-passenger-1.jsx"></script>
+<script type="text/babel" src="scripts/screens-passenger-2.jsx"></script>
+<script type="text/babel" src="scripts/screens-passenger-3.jsx"></script>
+<script type="text/babel" src="scripts/screens-driver.jsx"></script>
+<script type="text/babel" src="scripts/screens-admin.jsx"></script>
+<script type="text/babel" src="scripts/app-pwa.jsx"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    window.__rmInstallPrompt = deferredPrompt;
+  });
+  window.rmTriggerInstall = async () => {
+    if (!deferredPrompt) return false;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    return outcome === 'accepted';
+  };
+</script>
+</body>
+</html>

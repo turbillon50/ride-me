@@ -269,27 +269,46 @@ function RMPassengerChat() {
 
 function RMPassengerProfile() {
   const t = useT();
-  const { goto, profile, paymentMethods, setRole, setAuthed } = useStore();
+  const { goto, profile, paymentMethods, setRole, setAuthed, theme, setTheme } = useStore();
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-bg)' }}>
-      <div style={{ background: 'linear-gradient(160deg, var(--rm-navy) 0%, var(--rm-blue) 100%)', color: '#fff', padding: '20px 20px 30px', position: 'relative' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+    <div className="rm-page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-bg)' }}>
+      {/* Header con gradiente cinemático */}
+      <div style={{
+        background: 'var(--rm-grad-cinematic)',
+        color: '#fff', padding: '20px 20px 38px', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'radial-gradient(80% 60% at 80% 0%, rgba(0,180,255,0.30) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        }}/>
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <div style={{ fontWeight: 800, fontSize: 18 }}>{t.profile}</div>
-          <RMLocaleToggle/>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.16)', backdropFilter: 'blur(10px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff',
+            }} aria-label={t.toggleTheme}>
+              {theme === 'dark' ? <RMIcon.sun/> : <RMIcon.moon/>}
+            </button>
+            <RMLocaleToggle/>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <RMAvatar name={profile.name} color={profile.photoColor} size={64}/>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <RMAvatar name={profile.name} color={profile.photoColor} size={72} photoUrl={profile.photoUrl} ring/>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>{profile.name}</div>
+            <div style={{ fontWeight: 800, fontSize: 19 }}>{profile.name}</div>
             <div style={{ fontSize: 13, opacity: 0.85 }}>{profile.email}</div>
             <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
-              <RMBadge tone="cyan"><RMIcon.star style={{ width: 12, height: 12 }}/> {profile.rating}</RMBadge>
+              <RMBadge tone="cyan"><RMIcon.star style={{ width: 12, height: 12 }}/> {profile.rating || '—'}</RMBadge>
               <RMBadge tone="blue">{profile.trips} viajes</RMBadge>
             </div>
           </div>
         </div>
       </div>
-      <div style={{ marginTop: -16, padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ marginTop: -22, padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <RMCard padding={0} style={{ overflow: 'hidden' }}>
           <RMListRow icon={<RMIcon.user/>} label={t.personalInfo} onClick={() => goto('passengerEditProfile')}/>
           <RMListRow icon={<RMIcon.card/>} label={t.paymentMethods} right={<RMBadge tone="neutral">{paymentMethods.length}</RMBadge>} onClick={() => goto('passengerPaymentMethods')}/>
@@ -302,8 +321,15 @@ function RMPassengerProfile() {
           <RMListRow icon={<RMIcon.doc/>} label={t.help} onClick={() => goto('passengerHelp')}/>
         </RMCard>
         <RMCard padding={0} style={{ overflow: 'hidden' }}>
+          <RMListRow icon={<RMIcon.shield/>} label={t.privacyPolicy} onClick={() => goto('privacy')}/>
+          <RMListRow icon={<RMIcon.doc/>} label={t.termsConditions} onClick={() => goto('terms')}/>
+        </RMCard>
+        <RMCard padding={0} style={{ overflow: 'hidden' }}>
           <RMListRow icon={<RMIcon.x/>} label={t.logout} danger onClick={() => { setAuthed(false); goto('welcome'); }}/>
         </RMCard>
+        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--rm-text-3)', padding: '8px 0 16px' }}>
+          RideMe · v1.0 · {t.madeIn} 🇲🇽
+        </div>
       </div>
     </div>
   );
@@ -316,8 +342,17 @@ function RMPassengerEditProfile() {
   const [name, setName]   = React.useState(profile.name);
   const [email, setEmail] = React.useState(profile.email);
   const [phone, setPhone] = React.useState(profile.phone);
+  const [photoUrl, setPhotoUrl] = React.useState(profile.photoUrl || '');
   const [errors, setErrors] = React.useState({});
   const [toast, setToast] = React.useState(null);
+
+  const onPickPhoto = (file) => {
+    if (!file) return;
+    if (file.size > 2.5 * 1024 * 1024) { setToast(t.photoTooLarge); return; }
+    const reader = new FileReader();
+    reader.onload = () => setPhotoUrl(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  };
 
   const save = () => {
     const e = {};
@@ -326,15 +361,38 @@ function RMPassengerEditProfile() {
     if (!/^\+52\s?\d{2}\s?\d{4}\s?\d{4}$/.test(phone)) e.phone = t.errPhone;
     setErrors(e);
     if (Object.keys(e).length) return;
-    setProfile({ name: name.trim(), email: email.trim(), phone: phone.trim() });
+    setProfile({ name: name.trim(), email: email.trim(), phone: phone.trim(), photoUrl });
     setToast(t.profileUpdated);
     setTimeout(() => goto('passengerProfile'), 700);
   };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff', position: 'relative' }}>
+    <div className="rm-page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-surface)', position: 'relative' }}>
       <RMTopBar onBack={() => goto('passengerProfile')} title={t.editProfile}/>
-      <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ flex: 1, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, overflow: 'auto' }} className="rm-scroll">
+        {/* Avatar uploader */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '12px 0' }}>
+          <label style={{ position: 'relative', cursor: 'pointer' }}>
+            <RMAvatar name={name || profile.name} color={profile.photoColor} size={104} photoUrl={photoUrl} ring/>
+            <span style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'var(--rm-blue)', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'var(--rm-shadow-blue)',
+              border: '3px solid var(--rm-surface)',
+            }}>
+              <RMIcon.upload/>
+            </span>
+            <input type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={(e) => onPickPhoto(e.target.files?.[0])}/>
+          </label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <RMButton variant="ghost" size="sm" onClick={() => document.querySelector('label > input[type=file]')?.click()}>{t.changePhoto}</RMButton>
+            {photoUrl && <RMButton variant="ghost" size="sm" onClick={() => setPhotoUrl('')}>{t.removePhoto}</RMButton>}
+          </div>
+        </div>
+
         <RMInput label={t.fullName} value={name} onChange={setName} error={errors.name}/>
         <RMInput label={t.email} value={email} onChange={setEmail} error={errors.email}/>
         <RMInput label={t.phone} value={phone} onChange={setPhone} placeholder="+52 55 0000 0000" error={errors.phone}/>
@@ -532,8 +590,83 @@ function RMPassengerHelp() {
   );
 }
 
+// ─── Documentos legales ──────────────────────────────────────────────────
+function RMLegalDocument({ title, sections }) {
+  const t = useT();
+  const { goto, authed } = useStore();
+  const back = () => goto(authed ? 'passengerProfile' : 'welcome');
+  return (
+    <div className="rm-page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--rm-surface)' }}>
+      <RMTopBar onBack={back} title={title}/>
+      <div style={{ flex: 1, padding: '8px 22px 28px', overflow: 'auto' }} className="rm-scroll">
+        <div style={{ fontSize: 11, color: 'var(--rm-text-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+          {t.lastUpdated}: {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}
+        </div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 0, marginBottom: 18 }}>{title}</h1>
+        {sections.map((s, i) => (
+          <section key={i} style={{ marginBottom: 18 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em', marginBottom: 6, color: 'var(--rm-text)' }}>{s.heading}</h2>
+            {s.body.map((p, j) => (
+              <p key={j} style={{ fontSize: 13.5, lineHeight: 1.65, color: 'var(--rm-text-2)', margin: '6px 0' }}>{p}</p>
+            ))}
+            {s.bullets && (
+              <ul style={{ margin: '6px 0 6px 18px', padding: 0, color: 'var(--rm-text-2)', fontSize: 13.5, lineHeight: 1.65 }}>
+                {s.bullets.map((b, k) => <li key={k} style={{ marginBottom: 4 }}>{b}</li>)}
+              </ul>
+            )}
+          </section>
+        ))}
+        <div style={{
+          marginTop: 24, padding: '14px 16px',
+          background: 'var(--rm-bg)', borderRadius: 'var(--rm-r-md)',
+          fontSize: 12, color: 'var(--rm-text-2)', lineHeight: 1.55,
+        }}>
+          {t.legalContact}: <a href="mailto:legal@rideme.mx" style={{ color: 'var(--rm-blue)', fontWeight: 600 }}>legal@rideme.mx</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RMPrivacy() {
+  const t = useT();
+  const sections = [
+    { heading: t.privacy_h_intro, body: [t.privacy_p_intro] },
+    { heading: t.privacy_h_data, body: [t.privacy_p_data], bullets: [
+      t.privacy_b_account, t.privacy_b_location, t.privacy_b_payment, t.privacy_b_usage, t.privacy_b_device,
+    ]},
+    { heading: t.privacy_h_use, body: [t.privacy_p_use], bullets: [
+      t.privacy_b_match, t.privacy_b_safety, t.privacy_b_billing, t.privacy_b_support, t.privacy_b_legal,
+    ]},
+    { heading: t.privacy_h_share, body: [t.privacy_p_share] },
+    { heading: t.privacy_h_retention, body: [t.privacy_p_retention] },
+    { heading: t.privacy_h_rights, body: [t.privacy_p_rights] },
+    { heading: t.privacy_h_security, body: [t.privacy_p_security] },
+    { heading: t.privacy_h_changes, body: [t.privacy_p_changes] },
+  ];
+  return <RMLegalDocument title={t.privacyPolicy} sections={sections}/>;
+}
+
+function RMTerms() {
+  const t = useT();
+  const sections = [
+    { heading: t.terms_h_acceptance, body: [t.terms_p_acceptance] },
+    { heading: t.terms_h_service, body: [t.terms_p_service] },
+    { heading: t.terms_h_account, body: [t.terms_p_account] },
+    { heading: t.terms_h_fares, body: [t.terms_p_fares], bullets: [
+      t.terms_b_negotiable, t.terms_b_commission, t.terms_b_cancellation, t.terms_b_disputes,
+    ]},
+    { heading: t.terms_h_conduct, body: [t.terms_p_conduct] },
+    { heading: t.terms_h_drivers, body: [t.terms_p_drivers] },
+    { heading: t.terms_h_liability, body: [t.terms_p_liability] },
+    { heading: t.terms_h_termination, body: [t.terms_p_termination] },
+    { heading: t.terms_h_law, body: [t.terms_p_law] },
+  ];
+  return <RMLegalDocument title={t.termsConditions} sections={sections}/>;
+}
+
 Object.assign(window, {
   RMPassengerScheduled, RMPassengerHistory, RMPassengerMessages, RMPassengerChat, RMPassengerProfile,
   RMPassengerEditProfile, RMPassengerPaymentMethods, RMPassengerSecurity, RMPassengerNotifications, RMPassengerHelp,
-  RMScheduleForm,
+  RMScheduleForm, RMPrivacy, RMTerms, RMLegalDocument,
 });

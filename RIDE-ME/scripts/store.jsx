@@ -160,6 +160,7 @@ function RMStoreProvider({ children }) {
   const seed = (k) => persisted[k] !== undefined ? persisted[k] : RM_SEED[k];
 
   const [locale, setLocale]               = React.useState(persisted.locale || 'es');
+  const [theme, setTheme]                 = React.useState(persisted.theme || 'light'); // 'light' | 'dark'
   const [role, setRole]                   = React.useState(persisted.role || 'passenger');
   const [route, setRoute]                 = React.useState(persisted.route || { name: 'splash', params: {} });
   const [authed, setAuthed]               = React.useState(!!persisted.authed);
@@ -190,10 +191,19 @@ function RMStoreProvider({ children }) {
   // Persistir snapshot completo (debounced via microtask)
   const stateRef = React.useRef();
   stateRef.current = {
-    locale, role, route, authed, tab, trip, driverOnline, adminSection,
+    locale, theme, role, route, authed, tab, trip, driverOnline, adminSection,
     profile, driverProfile, paymentMethods, history, scheduled, conversations,
     driverRequestQueue, driverEarnings, driverDocs, adminConfig, adminAlerts, adminTrips, reports,
   };
+
+  // Aplicar tema al <html> en cada cambio
+  React.useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
+    root.classList.add('rm-theme-transition');
+    const id = setTimeout(() => root.classList.remove('rm-theme-transition'), 600);
+    return () => clearTimeout(id);
+  }, [theme]);
   React.useEffect(() => {
     const id = setTimeout(() => rmWriteStorage(stateRef.current), 80);
     return () => clearTimeout(id);
@@ -335,6 +345,7 @@ function RMStoreProvider({ children }) {
   const value = {
     // primitivas existentes
     locale, setLocale,
+    theme, setTheme,
     role, setRole,
     route, goto,
     authed, setAuthed,

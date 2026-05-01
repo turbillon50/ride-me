@@ -37,7 +37,7 @@ function RMInput({ label, icon, value, onChange, placeholder, type='text', hint,
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
         height: 50, padding: '0 14px',
-        background: '#fff', border: `1.5px solid ${error ? 'var(--rm-red)' : 'var(--rm-border)'}`,
+        background: 'var(--rm-surface)', border: `1.5px solid ${error ? 'var(--rm-red)' : 'var(--rm-border)'}`,
         borderRadius: 'var(--rm-r-md)',
       }}>
         {icon && <span style={{ color: 'var(--rm-text-3)' }}>{icon}</span>}
@@ -60,6 +60,7 @@ function RMTextarea({ label, value, onChange, placeholder, rows=3, error, hint }
         style={{
           padding: 12, borderRadius: 'var(--rm-r-md)', resize: 'none', fontSize: 14, fontFamily: 'inherit',
           border: `1.5px solid ${error ? 'var(--rm-red)' : 'var(--rm-border)'}`, outline: 'none',
+          background: 'var(--rm-surface)', color: 'var(--rm-text)',
         }}/>
       {(hint || error) && <div style={{ fontSize: 12, color: error ? 'var(--rm-red)' : 'var(--rm-text-3)' }}>{error || hint}</div>}
     </div>
@@ -74,7 +75,7 @@ function RMSelect({ label, value, onChange, options, hint, error }) {
         style={{
           height: 50, padding: '0 14px', fontSize: 15, color: 'var(--rm-text)',
           border: `1.5px solid ${error ? 'var(--rm-red)' : 'var(--rm-border)'}`,
-          borderRadius: 'var(--rm-r-md)', background: '#fff', appearance: 'none',
+          borderRadius: 'var(--rm-r-md)', background: 'var(--rm-surface)', appearance: 'none',
           backgroundImage: 'url("data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2216%22 height=%2216%22 viewBox=%220 0 24 24%22 fill=%22none%22><path d=%22M6 9l6 6 6-6%22 stroke=%22%238693AB%22 stroke-width=%222%22/></svg>")',
           backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center',
         }}>
@@ -108,7 +109,7 @@ function RMSwitch({ checked, onChange, label, sub }) {
 }
 
 function RMCard({ children, padding=16, style={} }) {
-  return <div style={{ background: '#fff', borderRadius: 'var(--rm-r-lg)', padding, boxShadow: 'var(--rm-shadow-sm)', ...style }}>{children}</div>;
+  return <div style={{ background: 'var(--rm-surface)', borderRadius: 'var(--rm-r-lg)', padding, boxShadow: 'var(--rm-shadow-sm)', border: '1px solid var(--rm-border)', ...style }}>{children}</div>;
 }
 
 function RMBadge({ tone='neutral', children, style={} }) {
@@ -127,13 +128,23 @@ function RMBadge({ tone='neutral', children, style={} }) {
   }}>{children}</span>;
 }
 
-function RMAvatar({ name='?', color='#5BD0FF', size=40 }) {
+function RMAvatar({ name='?', color='#5BD0FF', size=40, photoUrl, ring=false }) {
   const initials = name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+  const ringStyle = ring ? {
+    boxShadow: '0 0 0 2px var(--rm-surface), 0 0 0 4px var(--rm-cyan), 0 6px 18px rgba(0,180,255,0.35)',
+  } : {};
+  if (photoUrl) {
+    return <div style={{
+      width: size, height: size, borderRadius: '50%',
+      backgroundImage: `url(${photoUrl})`, backgroundSize: 'cover', backgroundPosition: 'center',
+      flexShrink: 0, ...ringStyle,
+    }}/>;
+  }
   return <div style={{
     width: size, height: size, borderRadius: '50%',
     background: color, color: '#0D1B3D', fontWeight: 700,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: size * 0.38, flexShrink: 0
+    fontSize: size * 0.38, flexShrink: 0, ...ringStyle,
   }}>{initials}</div>;
 }
 
@@ -141,7 +152,7 @@ function RMTopBar({ title, onBack, right, dark=false }) {
   return (
     <div style={{
       height: 56, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 8,
-      background: dark ? 'transparent' : '#fff',
+      background: dark ? 'transparent' : 'var(--rm-surface)',
       color: dark ? '#fff' : 'var(--rm-text)',
       borderBottom: dark ? 'none' : '1px solid var(--rm-border)',
       position: 'sticky', top: 0, zIndex: 20,
@@ -160,7 +171,7 @@ function RMTopBar({ title, onBack, right, dark=false }) {
 function RMTabBar({ tabs, active, onChange }) {
   return (
     <div style={{
-      height: 72, background: '#fff', borderTop: '1px solid var(--rm-border)',
+      height: 72, background: 'var(--rm-surface)', borderTop: '1px solid var(--rm-border)',
       display: 'flex', alignItems: 'stretch',
       paddingBottom: 'env(safe-area-inset-bottom)', flexShrink: 0,
     }}>
@@ -246,7 +257,7 @@ function RMModal({ open, onClose, title, children, footer, maxWidth=420 }) {
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: '#fff', borderRadius: '20px 20px 0 0',
+        background: 'var(--rm-surface)', borderRadius: '20px 20px 0 0',
         padding: '14px 18px 18px', width: '100%', maxWidth,
         maxHeight: '85%', overflow: 'auto',
         animation: 'rm-slide-up 0.22s ease both',
@@ -300,7 +311,7 @@ function RMListRow({ icon, label, right, onClick, danger, sub }) {
   return (
     <button onClick={onClick} style={{
       width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-      background: '#fff', borderBottom: '1px solid var(--rm-border)', textAlign: 'left',
+      background: 'var(--rm-surface)', borderBottom: '1px solid var(--rm-border)', textAlign: 'left',
       color: danger ? 'var(--rm-red)' : 'var(--rm-text)',
     }}>
       <span style={{ width: 36, height: 36, borderRadius: 10, background: danger ? 'var(--rm-red-bg)' : 'var(--rm-bg)', color: danger ? 'var(--rm-red)' : 'var(--rm-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</span>

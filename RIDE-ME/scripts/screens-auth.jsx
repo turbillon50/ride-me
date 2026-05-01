@@ -1,25 +1,75 @@
 // RideMe — Auth screens (Splash, Welcome, Login, Signup, Role)
+
+// Fotos hero (Unsplash, libres de uso). Carrusel con crossfade tipo Apple TV.
+const RM_HERO_PHOTOS = [
+  'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=1200&q=80&auto=format&fit=crop',  // road sunset
+  'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1200&q=80&auto=format&fit=crop',  // city night
+  'https://images.unsplash.com/photo-1542359649-31e03cd4d909?w=1200&q=80&auto=format&fit=crop',    // driver perspective
+  'https://images.unsplash.com/photo-1493238792000-8113da705763?w=1200&q=80&auto=format&fit=crop', // mexico city
+];
+
 function RMSplash() {
   const { goto } = useStore();
-  React.useEffect(() => { const t = setTimeout(() => goto('welcome'), 1400); return () => clearTimeout(t); }, []);
+  React.useEffect(() => { const t = setTimeout(() => goto('welcome'), 1700); return () => clearTimeout(t); }, []);
   return (
-    <div style={{
+    <div className="rm-aurora" style={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18,
-      background: 'linear-gradient(160deg, #0D1B3D 0%, #1A45BF 60%, #2563EB 100%)', color: '#fff',
+      color: '#fff', position: 'relative', overflow: 'hidden',
     }}>
-      <div style={{ animation: 'rm-fade-in 0.5s ease both' }}>
-        <RMLogoMark size={88} cyan="#00B4FF" />
+      {/* Capas de halo radial */}
+      <div style={{
+        position: 'absolute', inset: '-20%',
+        background: 'radial-gradient(circle at 50% 40%, rgba(0,180,255,0.35) 0%, transparent 55%), radial-gradient(circle at 30% 70%, rgba(124,92,255,0.30) 0%, transparent 50%)',
+        animation: 'rm-mesh-shift 8s ease-in-out infinite',
+        pointerEvents: 'none',
+      }}/>
+      <div style={{ position: 'relative', animation: 'rm-fade-in 0.6s ease both, rm-logo-breath 3.4s ease-in-out infinite' }}>
+        <RMLogoMark size={104} cyan="#00B4FF" />
       </div>
-      <div style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: 36, letterSpacing: '-0.03em' }}>
-        Ride<span style={{ color: 'var(--rm-cyan)' }}>Me</span>
+      <div style={{
+        position: 'relative', fontFamily: 'Inter', fontWeight: 800, fontSize: 42, letterSpacing: '-0.04em',
+        textShadow: '0 4px 30px rgba(0,180,255,0.3)',
+      }}>
+        Ride<span style={{
+          background: 'linear-gradient(135deg, #00B4FF 0%, #7C5CFF 100%)',
+          WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
+        }}>Me</span>
       </div>
-      <div style={{ opacity: 0.78, fontSize: 14 }}>Tu ride, tu destino.</div>
-      <div style={{ marginTop: 20, display: 'flex', gap: 6 }}>
+      <div style={{ position: 'relative', opacity: 0.85, fontSize: 14, letterSpacing: '0.02em' }}>Tu ride, tu destino.</div>
+      <div style={{ position: 'relative', marginTop: 24, display: 'flex', gap: 6 }}>
         {[0,1,2].map(i => (
           <span key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff',
+            boxShadow: '0 0 12px rgba(0,180,255,0.6)',
             animation: `rm-dot-bounce 1.2s ${i * 0.15}s infinite ease-in-out` }}/>
         ))}
       </div>
+    </div>
+  );
+}
+
+function RMHeroCarousel({ photos = RM_HERO_PHOTOS, interval = 4500 }) {
+  const totalDur = interval * photos.length;
+  return (
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+      {photos.map((src, i) => (
+        <div key={i} style={{
+          position: 'absolute', inset: 0,
+          backgroundImage: `url(${src})`, backgroundSize: 'cover', backgroundPosition: 'center',
+          animation: `rm-photo-fade ${totalDur}ms linear ${(i * interval)}ms infinite, rm-kenburns ${totalDur * 1.5}ms ease-in-out infinite alternate`,
+          opacity: 0,
+        }}/>
+      ))}
+      {/* Vignette + tinte cinemático */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(13,27,61,0.55) 0%, rgba(13,27,61,0.25) 35%, rgba(5,8,16,0.85) 100%)',
+        pointerEvents: 'none',
+      }}/>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'radial-gradient(80% 60% at 50% 0%, rgba(0,180,255,0.18) 0%, transparent 60%)',
+        mixBlendMode: 'screen', pointerEvents: 'none',
+      }}/>
     </div>
   );
 }
@@ -28,37 +78,59 @@ function RMWelcome() {
   const t = useT();
   const { goto } = useStore();
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
-      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 5 }}><RMLocaleToggle/></div>
+    <div className="rm-page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', background: '#050810' }}>
+      {/* Carrusel de fondo */}
+      <RMHeroCarousel/>
+
+      <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 5 }}><RMLocaleToggle/></div>
+
+      {/* Logo + tagline en zona superior, sobre el carrusel */}
       <div style={{
-        flex: 1, position: 'relative',
-        background: 'linear-gradient(180deg, #2563EB 0%, #1A45BF 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+        flex: 1, position: 'relative', zIndex: 2,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14,
+        color: '#fff', padding: 24,
       }}>
-        {[0,1,2].map(i => (
-          <div key={i} style={{
-            position: 'absolute', width: 80, height: 80, borderRadius: '50%',
-            border: '2px solid rgba(255,255,255,0.4)', animation: `rm-radar 2.6s ${i * 0.7}s infinite ease-out`,
-          }}/>
-        ))}
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, color: '#fff' }}>
-          <RMLogoMark size={84} />
-          <div style={{ fontFamily: 'Inter', fontWeight: 800, fontSize: 38, letterSpacing: '-0.03em' }}>
-            Ride<span style={{ color: 'var(--rm-cyan)' }}>Me</span>
-          </div>
-          <div style={{ fontSize: 14, opacity: 0.85 }}>{t.tagline}</div>
+        <div style={{ animation: 'rm-fade-in 0.7s ease both, rm-logo-breath 3.6s ease-in-out 0.3s infinite' }}>
+          <RMLogoMark size={88}/>
+        </div>
+        <div style={{
+          fontFamily: 'Inter', fontWeight: 800, fontSize: 44, letterSpacing: '-0.04em',
+          animation: 'rm-fade-in 0.8s 0.1s ease both', textShadow: '0 6px 40px rgba(0,180,255,0.35)',
+        }}>
+          Ride<span style={{
+            background: 'linear-gradient(135deg, #00B4FF 0%, #7C5CFF 100%)',
+            WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
+          }}>Me</span>
+        </div>
+        <div style={{
+          fontSize: 15, opacity: 0.92, animation: 'rm-fade-in 0.9s 0.2s ease both',
+          textAlign: 'center', maxWidth: 320, lineHeight: 1.45,
+        }}>
+          {t.tagline}
         </div>
       </div>
-      <div style={{ padding: '24px 24px 28px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em', textAlign: 'center', marginBottom: 4 }}>
-          {t.brand}
+
+      {/* Glassmorphic CTA dock */}
+      <div className="rm-glass" style={{
+        position: 'relative', zIndex: 3,
+        margin: '0 16px 16px', padding: '20px 18px 18px',
+        borderRadius: 'var(--rm-r-2xl)',
+        boxShadow: 'var(--rm-shadow-lg)',
+        animation: 'rm-slide-up 0.6s 0.25s ease both',
+      }}>
+        <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: '-0.02em', textAlign: 'center', marginBottom: 4, color: 'var(--rm-text)' }}>
+          {t.brand} · MX
         </div>
-        <div style={{ color: 'var(--rm-text-2)', fontSize: 14, textAlign: 'center', marginBottom: 10 }}>
-          {t.tagline} {t.negotiateHint}
+        <div style={{ color: 'var(--rm-text-2)', fontSize: 13, textAlign: 'center', marginBottom: 14, lineHeight: 1.5 }}>
+          {t.negotiateHint}
         </div>
-        <RMButton variant="primary" full onClick={() => goto('login')}>{t.signIn}</RMButton>
-        <RMButton variant="secondary" full onClick={() => goto('signup')}>{t.signUp}</RMButton>
-        <div style={{ fontSize: 11, color: 'var(--rm-text-3)', textAlign: 'center', marginTop: 8, lineHeight: 1.5 }}>{t.terms}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <RMButton variant="primary" full onClick={() => goto('login')}>{t.signIn}</RMButton>
+          <RMButton variant="secondary" full onClick={() => goto('signup')}>{t.signUp}</RMButton>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--rm-text-3)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
+          {t.terms} <span onClick={() => goto('terms')} style={{ color: 'var(--rm-blue)', fontWeight: 700, cursor: 'pointer' }}>{t.viewTerms}</span> · <span onClick={() => goto('privacy')} style={{ color: 'var(--rm-blue)', fontWeight: 700, cursor: 'pointer' }}>{t.viewPrivacy}</span>
+        </div>
       </div>
     </div>
   );

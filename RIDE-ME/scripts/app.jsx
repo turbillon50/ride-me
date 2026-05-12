@@ -26,6 +26,8 @@ function RMAppRouter() {
   if (r === 'login') return <RMLogin/>;
   if (r === 'signup') return <RMSignup/>;
   if (r === 'roleSelect') return <RMRoleSelect/>;
+  if (r === 'privacy') return <RMPrivacy/>;
+  if (r === 'terms') return <RMTerms/>;
 
   // Passenger
   if (role === 'passenger') {
@@ -50,6 +52,11 @@ function RMAppRouter() {
       passengerMessages: <RMPassengerMessages/>,
       passengerChat: <RMPassengerChat/>,
       passengerProfile: <RMPassengerProfile/>,
+      passengerEditProfile: <RMPassengerEditProfile/>,
+      passengerPaymentMethods: <RMPassengerPaymentMethods/>,
+      passengerSecurity: <RMPassengerSecurity/>,
+      passengerNotifications: <RMPassengerNotifications/>,
+      passengerHelp: <RMPassengerHelp/>,
     };
     screen = map[r] || <RMPassengerHome/>;
   }

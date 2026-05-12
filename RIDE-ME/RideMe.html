@@ -4,7 +4,8 @@
 <meta charset="utf-8"/>
 <title>RideMe — Tu ride, tu destino</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
-<meta name="theme-color" content="#2563EB"/>
+<meta name="theme-color" content="#0D1B3D" media="(prefers-color-scheme: dark)"/>
+<meta name="theme-color" content="#2563EB" media="(prefers-color-scheme: light)"/>
 <meta name="description" content="App de movilidad con precios negociables."/>
 
 <link rel="manifest" href="manifest.json"/>
@@ -26,21 +27,26 @@
 <style>
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    background: #fff; overscroll-behavior: none;
+    background: var(--rm-surface, #fff);
+    overscroll-behavior: none;
+    overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none; user-select: none;
     touch-action: manipulation;
+    color-scheme: light dark;
   }
-  body { font-family: 'Inter', -apple-system, system-ui, sans-serif; overflow: hidden; }
-  #root { width: 100%; height: 100dvh; }
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    overflow: hidden;
+    color: var(--rm-text, #0D1B3D);
+    /* Soporte para safe-area en iOS sin agregar barra fija */
+  }
+  #root { width: 100%; height: 100dvh; min-height: 100dvh; }
   input, textarea, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
-  @supports (padding: env(safe-area-inset-top)) {
-    body::before {
-      content: ''; position: fixed; top: 0; left: 0; right: 0;
-      height: env(safe-area-inset-top); background: #2563EB;
-      z-index: 9999; pointer-events: none;
-    }
-  }
+  /* Prevenir zoom en iOS al hacer focus en inputs (font-size mínimo 16px) */
+  input, textarea, select { font-size: 16px; }
+  /* Hidden de barra de scroll */
+  ::-webkit-scrollbar { width: 0; height: 0; }
 </style>
 </head>
 <body>
@@ -70,11 +76,38 @@
 <script type="text/babel" src="scripts/app-pwa.jsx"></script>
 
 <script>
+  // ─── Service Worker con auto-update ──────────────────────────────────
   if ('serviceWorker' in navigator) {
+    // Si la página NO tenía controlador antes (primer install), no recargues
+    // — solo recargar si es un cambio real de versión.
+    let firstControllerEver = !navigator.serviceWorker.controller;
+    let reloadOnce = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (firstControllerEver) { firstControllerEver = false; return; }
+      if (reloadOnce) return;
+      reloadOnce = true;
+      window.location.reload();
+    });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+        // Pedir actualización al cargar
+        reg.update().catch(() => {});
+        if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+        reg.addEventListener('updatefound', () => {
+          const newSw = reg.installing;
+          if (!newSw) return;
+          newSw.addEventListener('statechange', () => {
+            if (newSw.state === 'installed' && navigator.serviceWorker.controller) {
+              // Hay una nueva versión esperando: actívala.
+              newSw.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      }).catch(() => {});
     });
   }
+
+  // ─── Install prompt (Add to Home Screen) ────────────────────────────
   let deferredPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();

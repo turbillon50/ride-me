@@ -2,8 +2,8 @@
   "name": "RideMe — Tu ride, tu destino",
   "short_name": "RideMe",
   "description": "App de movilidad con precios negociables. Pasajeros y conductores.",
-  "start_url": "./RideMe.html",
-  "scope": "./",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0D1B3D",
@@ -13,25 +13,25 @@
   "categories": ["travel", "navigation", "lifestyle"],
   "icons": [
     {
-      "src": "icons/icon-192.png",
+      "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-512.png",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-512-maskable.png",
+      "src": "/icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "icons/apple-touch-icon.png",
+      "src": "/icons/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"

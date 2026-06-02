@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": false,
+  "rewrites": [
+    { "source": "/", "destination": "/RIDE-ME/RideMe.html" },
+    { "source": "/install", "destination": "/RIDE-ME/Instalar.html" },
+    { "source": "/prototype", "destination": "/RIDE-ME/RideMe%20Prototype.html" },
+    { "source": "/sw.js", "destination": "/RIDE-ME/sw.js" },
+    { "source": "/manifest.json", "destination": "/RIDE-ME/manifest.json" },
+    { "source": "/scripts/:path*", "destination": "/RIDE-ME/scripts/:path*" },
+    { "source": "/styles/:path*", "destination": "/RIDE-ME/styles/:path*" },
+    { "source": "/icons/:path*", "destination": "/RIDE-ME/icons/:path*" },
+    { "source": "/components/:path*", "destination": "/RIDE-ME/components/:path*" },
+    { "source": "/uploads/:path*", "destination": "/RIDE-ME/uploads/:path*" },
+    { "source": "/screenshots/:path*", "destination": "/RIDE-ME/screenshots/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    }
+  ]
+}
